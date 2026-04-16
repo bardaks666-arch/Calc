@@ -2,89 +2,105 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Cost Calculator Web</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Cost Calculator VK</title>
     <style>
         :root {
-            --bg-color: #1a1a1a;
-            --card-bg: #2d2d2d;
+            --bg-color: #000000;
+            --card-bg: #1c1c1e;
             --text-color: #ffffff;
-            --accent-color: #3a7ebf;
-            --danger-color: #8c2b2b;
-            --success-color: #2b8c44;
+            --accent-color: #007aff;
+            --danger-color: #ff453a;
+            --success-color: #32d74b;
+            --input-bg: #2c2c2e;
         }
 
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             display: flex;
             justify-content: center;
         }
 
         .container {
             width: 100%;
-            max-width: 500px;
+            max-width: 450px;
             background: var(--card-bg);
             padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        }
-
-        h2 { text-align: center; color: var(--text-color); }
-        .hidden { display: none; }
-
-        .input-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-        
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #444;
-            background: #3d3d3d;
-            color: white;
+            border-radius: 20px;
             box-sizing: border-box;
         }
 
-        .row { display: flex; gap: 10px; }
+        h2 { text-align: center; margin-bottom: 25px; font-weight: 600; }
+        .hidden { display: none; }
+
+        .input-group { margin-bottom: 20px; }
+        label { display: block; font-size: 14px; margin-bottom: 8px; color: #8e8e93; }
+        
+        input, select {
+            width: 100%;
+            height: 44px; /* Оптимально для нажатия пальцем */
+            padding: 10px 15px;
+            border-radius: 12px;
+            border: none;
+            background: var(--input-bg);
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .row { display: flex; gap: 12px; }
         .row input { flex: 1; }
 
         button {
             width: 100%;
-            padding: 12px;
+            height: 50px;
             margin-top: 10px;
             border: none;
-            border-radius: 8px;
+            border-radius: 14px;
             cursor: pointer;
-            font-weight: bold;
-            transition: 0.3s;
+            font-weight: 600;
+            font-size: 16px;
+            transition: opacity 0.2s;
         }
 
-        .btn-main { background-color: var(--accent-color); color: white; height: 50px; font-size: 16px; }
-        .btn-settings { background-color: #4a4a4a; color: white; }
+        button:active { opacity: 0.7; }
+
+        .btn-main { background-color: var(--accent-color); color: white; margin-top: 20px; }
+        .btn-settings { background-color: #3a3a3c; color: white; }
         .btn-save { background-color: var(--success-color); color: white; }
-        .btn-delete { background-color: var(--danger-color); color: white; width: auto; flex: 1; }
-        .btn-edit { background-color: #2b5e8c; color: white; width: auto; flex: 1; }
-        .btn-add { background-color: #444; color: white; width: auto; flex: 1; }
+        .btn-delete { background-color: var(--danger-color); color: white; flex: 1; }
+        .btn-edit { background-color: #545456; color: white; flex: 1; }
+        .btn-add { background-color: #3a3a3c; color: white; flex: 1; }
 
         #result {
-            margin-top: 20px;
-            padding: 15px;
-            background: #333;
-            border-radius: 10px;
+            margin-top: 25px;
+            padding: 20px;
+            background: #2c2c2e;
+            border-radius: 16px;
             line-height: 1.6;
-            border-left: 5px solid var(--accent-color);
         }
 
         .printer-info {
-            font-style: italic;
-            color: var(--accent-color);
             font-size: 13px;
-            margin-bottom: 15px;
+            color: var(--accent-color);
             text-align: center;
+            margin-bottom: 20px;
+            background: rgba(0, 122, 255, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .sale-price {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #48484a;
+            color: var(--success-color);
+            font-size: 18px;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -92,41 +108,39 @@
 
 <div class="container">
     <div id="main-scene">
-        <h2>Калькулятор стоимости</h2>
+        <h2>3D Калькулятор</h2>
         
         <div class="input-group">
-            <label>Выберите филамент:</label>
+            <label>Филамент</label>
             <select id="filament-select" onchange="saveSelection()"></select>
         </div>
 
         <div class="input-group">
-            <label>Вес модели (г):</label>
-            <input type="number" id="weight" placeholder="Напр: 50">
+            <label>Вес модели (г)</label>
+            <input type="number" id="weight" placeholder="0">
         </div>
 
         <div class="input-group">
-            <label>Время печати:</label>
+            <label>Время печати</label>
             <div class="row">
-                <input type="number" id="hours" placeholder="Часы">
-                <input type="number" id="mins" placeholder="Минуты">
+                <input type="number" id="hours" placeholder="Ч">
+                <input type="number" id="mins" placeholder="Мин">
             </div>
         </div>
 
         <div id="printer-display" class="printer-info"></div>
 
         <div class="input-group">
-            <label>Электроэнергия (руб/кВт·ч):</label>
+            <label>Электричество (руб/кВт·ч)</label>
             <input type="number" id="elec-price" step="0.1">
         </div>
 
         <div class="input-group">
-            <label>Доп. расходы (руб):</label>
-            <input type="number" id="extra-cost" value="0">
-        </div>
-
-        <div class="input-group">
-            <label>Амортизация (%):</label>
-            <input type="number" id="amort-perc" value="20">
+            <label>Доп. расходы / Амортизация (%)</label>
+            <div class="row">
+                <input type="number" id="extra-cost" placeholder="Доп. руб" value="0">
+                <input type="number" id="amort-perc" value="20">
+            </div>
         </div>
 
         <button class="btn-main" onclick="calculate()">Рассчитать</button>
@@ -137,25 +151,27 @@
 
     <div id="settings-scene" class="hidden">
         <h2>Настройки</h2>
-        <h4>--- ПРИНТЕРЫ ---</h4>
+        <label>Принтер</label>
         <select id="edit-printer-select" onchange="saveSelection()"></select>
-        <div class="row" style="margin-top:10px;">
-            <button class="btn-add" onclick="showEditor('printer', null)">Добавить</button>
-            <button class="btn-edit" onclick="showEditor('printer', true)">Изменить</button>
-            <button class="btn-delete" onclick="deleteItem('printer')">Удалить</button>
+        <div class="row" style="margin-top:10px; margin-bottom: 20px;">
+            <button class="btn-edit" onclick="showEditor('printer', true)">Изм.</button>
+            <button class="btn-add" onclick="showEditor('printer', null)">+</button>
+            <button class="btn-delete" onclick="deleteItem('printer')">Удл.</button>
         </div>
-        <h4>--- ФИЛАМЕНТЫ ---</h4>
+
+        <label>Филамент</label>
         <select id="edit-filament-select" onchange="saveSelection()"></select>
         <div class="row" style="margin-top:10px;">
-            <button class="btn-add" onclick="showEditor('filament', null)">Добавить</button>
-            <button class="btn-edit" onclick="showEditor('filament', true)">Изменить</button>
-            <button class="btn-delete" onclick="deleteItem('filament')">Удалить</button>
+            <button class="btn-edit" onclick="showEditor('filament', true)">Изм.</button>
+            <button class="btn-add" onclick="showEditor('filament', null)">+</button>
+            <button class="btn-delete" onclick="deleteItem('filament')">Удл.</button>
         </div>
-        <button class="btn-settings" style="margin-top:30px;" onclick="showScene('main-scene')">Назад</button>
+
+        <button class="btn-settings" style="margin-top:40px;" onclick="showScene('main-scene')">Готово</button>
     </div>
 
     <div id="editor-scene" class="hidden">
-        <h2 id="editor-title">Добавить</h2>
+        <h2 id="editor-title">Редактор</h2>
         <div id="editor-fields"></div>
         <button class="btn-save" onclick="saveEditor()">Сохранить</button>
         <button class="btn-settings" onclick="showScene('settings-scene')">Отмена</button>
@@ -178,13 +194,13 @@
     };
 
     function loadFromStorage() {
-        const saved = localStorage.getItem('3d_calc_data');
+        const saved = localStorage.getItem('3d_calc_v_vk');
         if (saved) data = JSON.parse(saved);
         updateUI();
     }
 
     function saveToStorage() {
-        localStorage.setItem('3d_calc_data', JSON.stringify(data));
+        localStorage.setItem('3d_calc_v_vk', JSON.stringify(data));
         updateUI();
     }
 
@@ -200,7 +216,7 @@
         const fEditSelect = document.getElementById('edit-filament-select');
         fSelect.innerHTML = ''; fEditSelect.innerHTML = '';
         data.filaments.forEach((f, i) => {
-            fSelect.innerHTML += `<option value="${i}">${f.type} (${f.cost_per_kg} руб/кг)</option>`;
+            fSelect.innerHTML += `<option value="${i}">${f.type} (${f.cost_per_kg}₽)</option>`;
             fEditSelect.innerHTML += `<option value="${i}">${f.type}</option>`;
         });
         fSelect.value = data.currentFilamentIndex;
@@ -214,7 +230,7 @@
         pEditSelect.value = data.currentPrinterIndex;
 
         const p = data.printers[data.currentPrinterIndex];
-        document.getElementById('printer-display').innerText = `Текущий принтер: ${p.name} (${p.power} Вт)\n${p.specs}`;
+        document.getElementById('printer-display').innerText = `${p.name} | ${p.power}W | ${p.specs}`;
         document.getElementById('elec-price').value = data.lastElectricityCost;
     }
 
@@ -224,35 +240,31 @@
         saveToStorage();
     }
 
-    // Редактор (вспомогательные функции)
-    let currentEditMode = null;
-    let currentEditIndex = null;
+    let currentEditMode = null, currentEditIndex = null;
     function showEditor(mode, edit) {
         currentEditMode = mode;
         currentEditIndex = edit ? (mode === 'printer' ? data.currentPrinterIndex : data.currentFilamentIndex) : null;
-        document.getElementById('editor-title').innerText = (edit ? "Изменить " : "Добавить ") + (mode === 'printer' ? "принтер" : "филамент");
+        document.getElementById('editor-title').innerText = edit ? "Изменить" : "Добавить";
         const fields = document.getElementById('editor-fields');
         fields.innerHTML = '';
         if (mode === 'printer') {
             const item = edit ? data.printers[currentEditIndex] : {name:'', power:'', specs:''};
             fields.innerHTML = `
-                <div class="input-group"><label>Название:</label><input id="edit-1" value="${item.name}"></div>
-                <div class="input-group"><label>Мощность (Вт):</label><input type="number" id="edit-2" value="${item.power}"></div>
-                <div class="input-group"><label>Характеристики:</label><input id="edit-3" value="${item.specs}"></div>`;
+                <div class="input-group"><label>Название</label><input id="edit-1" value="${item.name}"></div>
+                <div class="input-group"><label>Мощность (Вт)</label><input type="number" id="edit-2" value="${item.power}"></div>
+                <div class="input-group"><label>Область печати</label><input id="edit-3" value="${item.specs}"></div>`;
         } else {
             const item = edit ? data.filaments[currentEditIndex] : {type:'', cost_per_kg:'', density:''};
             fields.innerHTML = `
-                <div class="input-group"><label>Тип:</label><input id="edit-1" value="${item.type}"></div>
-                <div class="input-group"><label>Цена за кг:</label><input type="number" id="edit-2" value="${item.cost_per_kg}"></div>
-                <div class="input-group"><label>Плотность:</label><input type="number" id="edit-3" value="${item.density || 1.24}"></div>`;
+                <div class="input-group"><label>Тип материала</label><input id="edit-1" value="${item.type}"></div>
+                <div class="input-group"><label>Цена за кг (руб)</label><input type="number" id="edit-2" value="${item.cost_per_kg}"></div>
+                <div class="input-group"><label>Плотность</label><input type="number" id="edit-3" value="${item.density || 1.24}"></div>`;
         }
         showScene('editor-scene');
     }
 
     function saveEditor() {
-        const v1 = document.getElementById('edit-1').value;
-        const v2 = parseFloat(document.getElementById('edit-2').value);
-        const v3 = document.getElementById('edit-3').value;
+        const v1 = document.getElementById('edit-1').value, v2 = parseFloat(document.getElementById('edit-2').value), v3 = document.getElementById('edit-3').value;
         if (!v1 || isNaN(v2)) return alert("Заполните поля!");
         if (currentEditMode === 'printer') {
             const obj = { name: v1, power: v2, specs: v3 };
@@ -295,17 +307,27 @@
             const base = matCost + elecCost + extra;
             const amort = base * (amortPerc / 100);
             const total = base + amort;
+            const recommended = total * 3;
 
             const resDiv = document.getElementById('result');
             resDiv.classList.remove('hidden');
             resDiv.innerHTML = `
-                <div style="font-size:18px; color:#fff;">ИТОГО: ${total.toFixed(2)} руб.</div>
-                <div style="font-size:14px; margin-top:10px;">
-                    • Филамент: ${matCost.toFixed(2)} руб.<br>
-                    • Энергия: ${elecCost.toFixed(2)} руб. (${energyKwh.toFixed(3)} кВт·ч)<br>
-                    • Амортизация: ${amort.toFixed(2)} руб.
+                <div style="font-size:16px; color:#8e8e93;">Себестоимость:</div>
+                <div style="font-size:24px; font-weight:bold; margin-bottom:10px;">${total.toFixed(2)} ₽</div>
+                <div style="font-size:13px; color:#8e8e93; line-height:1.4;">
+                    • Пластик: ${matCost.toFixed(2)} ₽<br>
+                    • Энергия: ${elecCost.toFixed(2)} ₽<br>
+                    • Амортизация: ${amort.toFixed(2)} ₽
+                </div>
+                <div class="sale-price">
+                    Цена продажи (x3):<br>
+                    <span style="font-size:26px;">${recommended.toFixed(0)} ₽</span>
                 </div>`;
-        } catch (e) { alert("Ошибка!"); }
+            
+            // Плавная прокрутка к результату
+            resDiv.scrollIntoView({ behavior: 'smooth' });
+            
+        } catch (e) { alert("Ошибка данных"); }
     }
     window.onload = loadFromStorage;
 </script>
