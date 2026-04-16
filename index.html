@@ -32,6 +32,7 @@
             padding: 20px;
             border-radius: 20px;
             box-sizing: border-box;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
         h2 { text-align: center; margin-bottom: 25px; font-weight: 600; }
@@ -42,7 +43,7 @@
         
         input, select {
             width: 100%;
-            height: 44px; /* Оптимально для нажатия пальцем */
+            height: 44px;
             padding: 10px 15px;
             border-radius: 12px;
             border: none;
@@ -50,7 +51,10 @@
             color: white;
             font-size: 16px;
             box-sizing: border-box;
+            outline: none;
         }
+
+        input:focus { border: 1px solid var(--accent-color); }
 
         .row { display: flex; gap: 12px; }
         .row input { flex: 1; }
@@ -82,6 +86,7 @@
             background: #2c2c2e;
             border-radius: 16px;
             line-height: 1.6;
+            border: 1px solid #3a3a3c;
         }
 
         .printer-info {
@@ -117,14 +122,14 @@
 
         <div class="input-group">
             <label>Вес модели (г)</label>
-            <input type="number" id="weight" placeholder="0">
+            <input type="number" id="weight" placeholder="0" inputmode="decimal">
         </div>
 
         <div class="input-group">
             <label>Время печати</label>
             <div class="row">
-                <input type="number" id="hours" placeholder="Ч">
-                <input type="number" id="mins" placeholder="Мин">
+                <input type="number" id="hours" placeholder="Ч" inputmode="numeric">
+                <input type="number" id="mins" placeholder="Мин" inputmode="numeric">
             </div>
         </div>
 
@@ -132,14 +137,14 @@
 
         <div class="input-group">
             <label>Электричество (руб/кВт·ч)</label>
-            <input type="number" id="elec-price" step="0.1">
+            <input type="number" id="elec-price" step="0.1" inputmode="decimal">
         </div>
 
         <div class="input-group">
             <label>Доп. расходы / Амортизация (%)</label>
             <div class="row">
-                <input type="number" id="extra-cost" placeholder="Доп. руб" value="0">
-                <input type="number" id="amort-perc" value="20">
+                <input type="number" id="extra-cost" placeholder="Доп. руб" value="0" inputmode="numeric">
+                <input type="number" id="amort-perc" value="20" inputmode="numeric">
             </div>
         </div>
 
@@ -151,15 +156,15 @@
 
     <div id="settings-scene" class="hidden">
         <h2>Настройки</h2>
-        <label>Принтер</label>
+        <label>Принтер по умолчанию</label>
         <select id="edit-printer-select" onchange="saveSelection()"></select>
-        <div class="row" style="margin-top:10px; margin-bottom: 20px;">
+        <div class="row" style="margin-top:10px; margin-bottom: 25px;">
             <button class="btn-edit" onclick="showEditor('printer', true)">Изм.</button>
             <button class="btn-add" onclick="showEditor('printer', null)">+</button>
             <button class="btn-delete" onclick="deleteItem('printer')">Удл.</button>
         </div>
 
-        <label>Филамент</label>
+        <label>База филаментов</label>
         <select id="edit-filament-select" onchange="saveSelection()"></select>
         <div class="row" style="margin-top:10px;">
             <button class="btn-edit" onclick="showEditor('filament', true)">Изм.</button>
@@ -167,7 +172,7 @@
             <button class="btn-delete" onclick="deleteItem('filament')">Удл.</button>
         </div>
 
-        <button class="btn-settings" style="margin-top:40px;" onclick="showScene('main-scene')">Готово</button>
+        <button class="btn-settings" style="margin-top:40px;" onclick="showScene('main-scene')">Вернуться</button>
     </div>
 
     <div id="editor-scene" class="hidden">
@@ -179,6 +184,7 @@
 </div>
 
 <script>
+    // Начальные данные согласно вашим требованиям
     let data = {
         currentPrinterIndex: 0,
         currentFilamentIndex: 0,
@@ -194,13 +200,13 @@
     };
 
     function loadFromStorage() {
-        const saved = localStorage.getItem('3d_calc_v_vk');
+        const saved = localStorage.getItem('3d_calc_v3_data');
         if (saved) data = JSON.parse(saved);
         updateUI();
     }
 
     function saveToStorage() {
-        localStorage.setItem('3d_calc_v_vk', JSON.stringify(data));
+        localStorage.setItem('3d_calc_v3_data', JSON.stringify(data));
         updateUI();
     }
 
@@ -216,7 +222,8 @@
         const fEditSelect = document.getElementById('edit-filament-select');
         fSelect.innerHTML = ''; fEditSelect.innerHTML = '';
         data.filaments.forEach((f, i) => {
-            fSelect.innerHTML += `<option value="${i}">${f.type} (${f.cost_per_kg}₽)</option>`;
+            // Используем "руб." вместо спецсимвола
+            fSelect.innerHTML += `<option value="${i}">${f.type} (${f.cost_per_kg} руб.)</option>`;
             fEditSelect.innerHTML += `<option value="${i}">${f.type}</option>`;
         });
         fSelect.value = data.currentFilamentIndex;
@@ -258,14 +265,17 @@
             fields.innerHTML = `
                 <div class="input-group"><label>Тип материала</label><input id="edit-1" value="${item.type}"></div>
                 <div class="input-group"><label>Цена за кг (руб)</label><input type="number" id="edit-2" value="${item.cost_per_kg}"></div>
-                <div class="input-group"><label>Плотность</label><input type="number" id="edit-3" value="${item.density || 1.24}"></div>`;
+                <div class="input-group"><label>Плотность (г/см³)</label><input type="number" id="edit-3" value="${item.density || 1.24}"></div>`;
         }
         showScene('editor-scene');
     }
 
     function saveEditor() {
-        const v1 = document.getElementById('edit-1').value, v2 = parseFloat(document.getElementById('edit-2').value), v3 = document.getElementById('edit-3').value;
-        if (!v1 || isNaN(v2)) return alert("Заполните поля!");
+        const v1 = document.getElementById('edit-1').value, 
+              v2 = parseFloat(document.getElementById('edit-2').value), 
+              v3 = document.getElementById('edit-3').value;
+        if (!v1 || isNaN(v2)) return alert("Пожалуйста, заполните данные корректно");
+        
         if (currentEditMode === 'printer') {
             const obj = { name: v1, power: v2, specs: v3 };
             if (currentEditIndex !== null) data.printers[currentEditIndex] = obj; else data.printers.push(obj);
@@ -279,7 +289,7 @@
 
     function deleteItem(mode) {
         const list = mode === 'printer' ? data.printers : data.filaments;
-        if (list.length <= 1) return alert("Нельзя удалить последний!");
+        if (list.length <= 1) return alert("Нельзя удалить последний элемент");
         list.splice(mode === 'printer' ? data.currentPrinterIndex : data.currentFilamentIndex, 1);
         if (mode === 'printer') data.currentPrinterIndex = 0; else data.currentFilamentIndex = 0;
         saveToStorage();
@@ -312,22 +322,21 @@
             const resDiv = document.getElementById('result');
             resDiv.classList.remove('hidden');
             resDiv.innerHTML = `
-                <div style="font-size:16px; color:#8e8e93;">Себестоимость:</div>
-                <div style="font-size:24px; font-weight:bold; margin-bottom:10px;">${total.toFixed(2)} ₽</div>
-                <div style="font-size:13px; color:#8e8e93; line-height:1.4;">
-                    • Пластик: ${matCost.toFixed(2)} ₽<br>
-                    • Энергия: ${elecCost.toFixed(2)} ₽<br>
-                    • Амортизация: ${amort.toFixed(2)} ₽
+                <div style="font-size:14px; color:#8e8e93; text-transform: uppercase; letter-spacing: 1px;">Себестоимость</div>
+                <div style="font-size:28px; font-weight:bold; margin-bottom:12px;">${total.toFixed(2)} руб.</div>
+                <div style="font-size:14px; color:#8e8e93; line-height:1.6; background: #3a3a3c; padding: 10px; border-radius: 8px;">
+                    • Пластик: ${matCost.toFixed(2)} руб.<br>
+                    • Энергия: ${elecCost.toFixed(2)} руб.<br>
+                    • Амортизация: ${amort.toFixed(2)} руб.
                 </div>
                 <div class="sale-price">
-                    Цена продажи (x3):<br>
-                    <span style="font-size:26px;">${recommended.toFixed(0)} ₽</span>
+                    Рекомендуемая цена (x3):<br>
+                    <div style="font-size:32px; margin-top:5px;">${recommended.toFixed(0)} руб.</div>
                 </div>`;
             
-            // Плавная прокрутка к результату
             resDiv.scrollIntoView({ behavior: 'smooth' });
             
-        } catch (e) { alert("Ошибка данных"); }
+        } catch (e) { alert("Ошибка в расчетах. Проверьте введенные числа."); }
     }
     window.onload = loadFromStorage;
 </script>
