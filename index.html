@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Cost Calculator Web</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-color: #ffffff;
+            --accent-color: #3a7ebf;
+            --danger-color: #8c2b2b;
+            --success-color: #2b8c44;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        h2 { text-align: center; color: var(--text-color); }
+        .hidden { display: none; }
+
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background: #3d3d3d;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        .row { display: flex; gap: 10px; }
+        .row input { flex: 1; }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .btn-main { background-color: var(--accent-color); color: white; height: 50px; font-size: 16px; }
+        .btn-settings { background-color: #4a4a4a; color: white; }
+        .btn-save { background-color: var(--success-color); color: white; }
+        .btn-delete { background-color: var(--danger-color); color: white; width: auto; flex: 1; }
+        .btn-edit { background-color: #2b5e8c; color: white; width: auto; flex: 1; }
+        .btn-add { background-color: #444; color: white; width: auto; flex: 1; }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #333;
+            border-radius: 10px;
+            line-height: 1.6;
+            border-left: 5px solid var(--accent-color);
+        }
+
+        .printer-info {
+            font-style: italic;
+            color: var(--accent-color);
+            font-size: 13px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="main-scene">
+        <h2>Калькулятор стоимости</h2>
+        
+        <div class="input-group">
+            <label>Выберите филамент:</label>
+            <select id="filament-select" onchange="saveSelection()"></select>
+        </div>
+
+        <div class="input-group">
+            <label>Вес модели (г):</label>
+            <input type="number" id="weight" placeholder="Напр: 50">
+        </div>
+
+        <div class="input-group">
+            <label>Время печати:</label>
+            <div class="row">
+                <input type="number" id="hours" placeholder="Часы">
+                <input type="number" id="mins" placeholder="Минуты">
+            </div>
+        </div>
+
+        <div id="printer-display" class="printer-info"></div>
+
+        <div class="input-group">
+            <label>Электроэнергия (руб/кВт·ч):</label>
+            <input type="number" id="elec-price" step="0.1">
+        </div>
+
+        <div class="input-group">
+            <label>Доп. расходы (руб):</label>
+            <input type="number" id="extra-cost" value="0">
+        </div>
+
+        <div class="input-group">
+            <label>Амортизация (%):</label>
+            <input type="number" id="amort-perc" value="20">
+        </div>
+
+        <button class="btn-main" onclick="calculate()">Рассчитать</button>
+        <button class="btn-settings" onclick="showScene('settings-scene')">Настройки</button>
+
+        <div id="result" class="hidden"></div>
+    </div>
+
+    <div id="settings-scene" class="hidden">
+        <h2>Настройки</h2>
+        <h4>--- ПРИНТЕРЫ ---</h4>
+        <select id="edit-printer-select" onchange="saveSelection()"></select>
+        <div class="row" style="margin-top:10px;">
+            <button class="btn-add" onclick="showEditor('printer', null)">Добавить</button>
+            <button class="btn-edit" onclick="showEditor('printer', true)">Изменить</button>
+            <button class="btn-delete" onclick="deleteItem('printer')">Удалить</button>
+        </div>
+        <h4>--- ФИЛАМЕНТЫ ---</h4>
+        <select id="edit-filament-select" onchange="saveSelection()"></select>
+        <div class="row" style="margin-top:10px;">
+            <button class="btn-add" onclick="showEditor('filament', null)">Добавить</button>
+            <button class="btn-edit" onclick="showEditor('filament', true)">Изменить</button>
+            <button class="btn-delete" onclick="deleteItem('filament')">Удалить</button>
+        </div>
+        <button class="btn-settings" style="margin-top:30px;" onclick="showScene('main-scene')">Назад</button>
+    </div>
+
+    <div id="editor-scene" class="hidden">
+        <h2 id="editor-title">Добавить</h2>
+        <div id="editor-fields"></div>
+        <button class="btn-save" onclick="saveEditor()">Сохранить</button>
+        <button class="btn-settings" onclick="showScene('settings-scene')">Отмена</button>
+    </div>
+</div>
+
+<script>
+    let data = {
+        currentPrinterIndex: 0,
+        currentFilamentIndex: 0,
+        lastElectricityCost: 5.5,
+        printers: [
+            { name: "ad5x/5m/5mpro", power: 650.0, specs: "220x220x220 мм" },
+            { name: "Ender 3s1 pro", power: 350.0, specs: "220x220x270 мм" }
+        ],
+        filaments: [
+            { type: "PLA", cost_per_kg: 1000.0, density: 1.24 },
+            { type: "PETG", cost_per_kg: 900.0, density: 1.27 }
+        ]
+    };
+
+    function loadFromStorage() {
+        const saved = localStorage.getItem('3d_calc_data');
+        if (saved) data = JSON.parse(saved);
+        updateUI();
+    }
+
+    function saveToStorage() {
+        localStorage.setItem('3d_calc_data', JSON.stringify(data));
+        updateUI();
+    }
+
+    function showScene(sceneId) {
+        document.getElementById('main-scene').classList.add('hidden');
+        document.getElementById('settings-scene').classList.add('hidden');
+        document.getElementById('editor-scene').classList.add('hidden');
+        document.getElementById(sceneId).classList.remove('hidden');
+    }
+
+    function updateUI() {
+        const fSelect = document.getElementById('filament-select');
+        const fEditSelect = document.getElementById('edit-filament-select');
+        fSelect.innerHTML = ''; fEditSelect.innerHTML = '';
+        data.filaments.forEach((f, i) => {
+            fSelect.innerHTML += `<option value="${i}">${f.type} (${f.cost_per_kg} руб/кг)</option>`;
+            fEditSelect.innerHTML += `<option value="${i}">${f.type}</option>`;
+        });
+        fSelect.value = data.currentFilamentIndex;
+        fEditSelect.value = data.currentFilamentIndex;
+
+        const pEditSelect = document.getElementById('edit-printer-select');
+        pEditSelect.innerHTML = '';
+        data.printers.forEach((p, i) => {
+            pEditSelect.innerHTML += `<option value="${i}">${p.name}</option>`;
+        });
+        pEditSelect.value = data.currentPrinterIndex;
+
+        const p = data.printers[data.currentPrinterIndex];
+        document.getElementById('printer-display').innerText = `Текущий принтер: ${p.name} (${p.power} Вт)\n${p.specs}`;
+        document.getElementById('elec-price').value = data.lastElectricityCost;
+    }
+
+    function saveSelection() {
+        data.currentFilamentIndex = parseInt(document.getElementById('filament-select').value) || 0;
+        data.currentPrinterIndex = parseInt(document.getElementById('edit-printer-select').value) || 0;
+        saveToStorage();
+    }
+
+    // Редактор (вспомогательные функции)
+    let currentEditMode = null;
+    let currentEditIndex = null;
+    function showEditor(mode, edit) {
+        currentEditMode = mode;
+        currentEditIndex = edit ? (mode === 'printer' ? data.currentPrinterIndex : data.currentFilamentIndex) : null;
+        document.getElementById('editor-title').innerText = (edit ? "Изменить " : "Добавить ") + (mode === 'printer' ? "принтер" : "филамент");
+        const fields = document.getElementById('editor-fields');
+        fields.innerHTML = '';
+        if (mode === 'printer') {
+            const item = edit ? data.printers[currentEditIndex] : {name:'', power:'', specs:''};
+            fields.innerHTML = `
+                <div class="input-group"><label>Название:</label><input id="edit-1" value="${item.name}"></div>
+                <div class="input-group"><label>Мощность (Вт):</label><input type="number" id="edit-2" value="${item.power}"></div>
+                <div class="input-group"><label>Характеристики:</label><input id="edit-3" value="${item.specs}"></div>`;
+        } else {
+            const item = edit ? data.filaments[currentEditIndex] : {type:'', cost_per_kg:'', density:''};
+            fields.innerHTML = `
+                <div class="input-group"><label>Тип:</label><input id="edit-1" value="${item.type}"></div>
+                <div class="input-group"><label>Цена за кг:</label><input type="number" id="edit-2" value="${item.cost_per_kg}"></div>
+                <div class="input-group"><label>Плотность:</label><input type="number" id="edit-3" value="${item.density || 1.24}"></div>`;
+        }
+        showScene('editor-scene');
+    }
+
+    function saveEditor() {
+        const v1 = document.getElementById('edit-1').value;
+        const v2 = parseFloat(document.getElementById('edit-2').value);
+        const v3 = document.getElementById('edit-3').value;
+        if (!v1 || isNaN(v2)) return alert("Заполните поля!");
+        if (currentEditMode === 'printer') {
+            const obj = { name: v1, power: v2, specs: v3 };
+            if (currentEditIndex !== null) data.printers[currentEditIndex] = obj; else data.printers.push(obj);
+        } else {
+            const obj = { type: v1, cost_per_kg: v2, density: parseFloat(v3) };
+            if (currentEditIndex !== null) data.filaments[currentEditIndex] = obj; else data.filaments.push(obj);
+        }
+        saveToStorage();
+        showScene('settings-scene');
+    }
+
+    function deleteItem(mode) {
+        const list = mode === 'printer' ? data.printers : data.filaments;
+        if (list.length <= 1) return alert("Нельзя удалить последний!");
+        list.splice(mode === 'printer' ? data.currentPrinterIndex : data.currentFilamentIndex, 1);
+        if (mode === 'printer') data.currentPrinterIndex = 0; else data.currentFilamentIndex = 0;
+        saveToStorage();
+    }
+
+    function calculate() {
+        try {
+            const weight = parseFloat(document.getElementById('weight').value) || 0;
+            const hours = parseFloat(document.getElementById('hours').value) || 0;
+            const mins = parseFloat(document.getElementById('mins').value) || 0;
+            const elecPrice = parseFloat(document.getElementById('elec-price').value) || 0;
+            const extra = parseFloat(document.getElementById('extra-cost').value) || 0;
+            const amortPerc = parseFloat(document.getElementById('amort-perc').value) || 0;
+
+            data.lastElectricityCost = elecPrice;
+            saveToStorage();
+
+            const totalHours = hours + (mins / 60);
+            const p = data.printers[data.currentPrinterIndex];
+            const f = data.filaments[data.currentFilamentIndex];
+
+            const matCost = (weight / 1000) * f.cost_per_kg;
+            const energyKwh = (p.power * totalHours) / 1000;
+            const elecCost = energyKwh * elecPrice;
+            const base = matCost + elecCost + extra;
+            const amort = base * (amortPerc / 100);
+            const total = base + amort;
+
+            const resDiv = document.getElementById('result');
+            resDiv.classList.remove('hidden');
+            resDiv.innerHTML = `
+                <div style="font-size:18px; color:#fff;">ИТОГО: ${total.toFixed(2)} руб.</div>
+                <div style="font-size:14px; margin-top:10px;">
+                    • Филамент: ${matCost.toFixed(2)} руб.<br>
+                    • Энергия: ${elecCost.toFixed(2)} руб. (${energyKwh.toFixed(3)} кВт·ч)<br>
+                    • Амортизация: ${amort.toFixed(2)} руб.
+                </div>`;
+        } catch (e) { alert("Ошибка!"); }
+    }
+    window.onload = loadFromStorage;
+</script>
+</body>
+</html>
