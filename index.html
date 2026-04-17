@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>3D Cost Calculator VK</title>
+    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
     <style>
         :root {
             --bg-color: #000000;
@@ -32,7 +33,6 @@
             padding: 20px;
             border-radius: 20px;
             box-sizing: border-box;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
         h2 { text-align: center; margin-bottom: 25px; font-weight: 600; }
@@ -53,8 +53,6 @@
             box-sizing: border-box;
             outline: none;
         }
-
-        input:focus { border: 1px solid var(--accent-color); }
 
         .row { display: flex; gap: 12px; }
         .row input { flex: 1; }
@@ -86,7 +84,6 @@
             background: #2c2c2e;
             border-radius: 16px;
             line-height: 1.6;
-            border: 1px solid #3a3a3c;
         }
 
         .printer-info {
@@ -156,15 +153,15 @@
 
     <div id="settings-scene" class="hidden">
         <h2>Настройки</h2>
-        <label>Принтер по умолчанию</label>
+        <label>Принтер</label>
         <select id="edit-printer-select" onchange="saveSelection()"></select>
-        <div class="row" style="margin-top:10px; margin-bottom: 25px;">
+        <div class="row" style="margin-top:10px; margin-bottom: 20px;">
             <button class="btn-edit" onclick="showEditor('printer', true)">Изм.</button>
             <button class="btn-add" onclick="showEditor('printer', null)">+</button>
             <button class="btn-delete" onclick="deleteItem('printer')">Удл.</button>
         </div>
 
-        <label>База филаментов</label>
+        <label>Филамент</label>
         <select id="edit-filament-select" onchange="saveSelection()"></select>
         <div class="row" style="margin-top:10px;">
             <button class="btn-edit" onclick="showEditor('filament', true)">Изм.</button>
@@ -172,7 +169,7 @@
             <button class="btn-delete" onclick="deleteItem('filament')">Удл.</button>
         </div>
 
-        <button class="btn-settings" style="margin-top:40px;" onclick="showScene('main-scene')">Вернуться</button>
+        <button class="btn-settings" style="margin-top:40px;" onclick="showScene('main-scene')">Готово</button>
     </div>
 
     <div id="editor-scene" class="hidden">
@@ -184,29 +181,31 @@
 </div>
 
 <script>
-    // Начальные данные согласно вашим требованиям
+    // Инициализация VK Bridge
+    vkBridge.send("VKWebAppInit");
+
     let data = {
         currentPrinterIndex: 0,
         currentFilamentIndex: 0,
-        lastElectricityCost: 5.5,
+        lastElectricityCost: 5.75,
         printers: [
-            { name: "ad5x/5m/5mpro", power: 650.0, specs: "220x220x220 мм" },
-            { name: "Ender 3s1 pro", power: 350.0, specs: "220x220x270 мм" }
+            { name: "ad5x/5m/5mpro", power: 650.0, specs: "220x220x220 мм" }
         ],
         filaments: [
             { type: "PLA", cost_per_kg: 1000.0, density: 1.24 },
-            { type: "PETG", cost_per_kg: 900.0, density: 1.27 }
+            { type: "PETG", cost_per_kg: 900.0, density: 1.27 },
+            { type: "PLA Silk", cost_per_kg: 1300.0, density: 1.24 }
         ]
     };
 
     function loadFromStorage() {
-        const saved = localStorage.getItem('3d_calc_v3_data');
+        const saved = localStorage.getItem('3d_calc_vk_v4');
         if (saved) data = JSON.parse(saved);
         updateUI();
     }
 
     function saveToStorage() {
-        localStorage.setItem('3d_calc_v3_data', JSON.stringify(data));
+        localStorage.setItem('3d_calc_vk_v4', JSON.stringify(data));
         updateUI();
     }
 
@@ -222,7 +221,6 @@
         const fEditSelect = document.getElementById('edit-filament-select');
         fSelect.innerHTML = ''; fEditSelect.innerHTML = '';
         data.filaments.forEach((f, i) => {
-            // Используем "руб." вместо спецсимвола
             fSelect.innerHTML += `<option value="${i}">${f.type} (${f.cost_per_kg} руб.)</option>`;
             fEditSelect.innerHTML += `<option value="${i}">${f.type}</option>`;
         });
@@ -265,17 +263,14 @@
             fields.innerHTML = `
                 <div class="input-group"><label>Тип материала</label><input id="edit-1" value="${item.type}"></div>
                 <div class="input-group"><label>Цена за кг (руб)</label><input type="number" id="edit-2" value="${item.cost_per_kg}"></div>
-                <div class="input-group"><label>Плотность (г/см³)</label><input type="number" id="edit-3" value="${item.density || 1.24}"></div>`;
+                <div class="input-group"><label>Плотность</label><input type="number" id="edit-3" value="${item.density || 1.24}"></div>`;
         }
         showScene('editor-scene');
     }
 
     function saveEditor() {
-        const v1 = document.getElementById('edit-1').value, 
-              v2 = parseFloat(document.getElementById('edit-2').value), 
-              v3 = document.getElementById('edit-3').value;
-        if (!v1 || isNaN(v2)) return alert("Пожалуйста, заполните данные корректно");
-        
+        const v1 = document.getElementById('edit-1').value, v2 = parseFloat(document.getElementById('edit-2').value), v3 = document.getElementById('edit-3').value;
+        if (!v1 || isNaN(v2)) return alert("Заполните поля!");
         if (currentEditMode === 'printer') {
             const obj = { name: v1, power: v2, specs: v3 };
             if (currentEditIndex !== null) data.printers[currentEditIndex] = obj; else data.printers.push(obj);
@@ -289,7 +284,7 @@
 
     function deleteItem(mode) {
         const list = mode === 'printer' ? data.printers : data.filaments;
-        if (list.length <= 1) return alert("Нельзя удалить последний элемент");
+        if (list.length <= 1) return alert("Нельзя удалить последний!");
         list.splice(mode === 'printer' ? data.currentPrinterIndex : data.currentFilamentIndex, 1);
         if (mode === 'printer') data.currentPrinterIndex = 0; else data.currentFilamentIndex = 0;
         saveToStorage();
@@ -322,21 +317,19 @@
             const resDiv = document.getElementById('result');
             resDiv.classList.remove('hidden');
             resDiv.innerHTML = `
-                <div style="font-size:14px; color:#8e8e93; text-transform: uppercase; letter-spacing: 1px;">Себестоимость</div>
-                <div style="font-size:28px; font-weight:bold; margin-bottom:12px;">${total.toFixed(2)} руб.</div>
-                <div style="font-size:14px; color:#8e8e93; line-height:1.6; background: #3a3a3c; padding: 10px; border-radius: 8px;">
+                <div style="font-size:16px; color:#8e8e93;">Себестоимость:</div>
+                <div style="font-size:24px; font-weight:bold; margin-bottom:10px;">${total.toFixed(2)} руб.</div>
+                <div style="font-size:13px; color:#8e8e93; line-height:1.4;">
                     • Пластик: ${matCost.toFixed(2)} руб.<br>
                     • Энергия: ${elecCost.toFixed(2)} руб.<br>
                     • Амортизация: ${amort.toFixed(2)} руб.
                 </div>
                 <div class="sale-price">
                     Рекомендуемая цена (x3):<br>
-                    <div style="font-size:32px; margin-top:5px;">${recommended.toFixed(0)} руб.</div>
+                    <span style="font-size:26px;">${recommended.toFixed(0)} руб.</span>
                 </div>`;
-            
             resDiv.scrollIntoView({ behavior: 'smooth' });
-            
-        } catch (e) { alert("Ошибка в расчетах. Проверьте введенные числа."); }
+        } catch (e) { alert("Ошибка данных"); }
     }
     window.onload = loadFromStorage;
 </script>
